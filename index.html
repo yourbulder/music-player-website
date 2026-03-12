@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Music App - Login</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #111;
+      color: #eee;
+      margin: 0;
+      padding: 20px;
+      min-height: 100vh;
+    }
+    .container { max-width: 420px; margin: 60px auto; }
+    input, button {
+      display: block;
+      width: 100%;
+      padding: 12px;
+      margin: 10px 0;
+      border-radius: 6px;
+      border: none;
+      font-size: 16px;
+    }
+    input { background: #222; color: white; }
+    button { background: #e91e63; color: white; cursor: pointer; }
+    button:hover { background: #c2185b; }
+    #status { color: #ff9800; min-height: 1.4em; }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+
+  <h2>Music Player</h2>
+
+  <div id="auth-section">
+    <h3>Sign Up / Login</h3>
+    
+    <input id="email"    type="email"    placeholder="Email" />
+    <input id="password" type="password" placeholder="Password" />
+    
+    <div style="margin: 15px 0;">
+      <label><input type="radio" name="role" value="listener" checked> Listener</label><br>
+      <label><input type="radio" name="role" value="singer"> Singer / Artist</label>
+    </div>
+
+    <button onclick="signup()">Sign Up</button>
+    <button onclick="login()" style="background:#673ab7;">Login</button>
+
+    <p id="status"></p>
+  </div>
+
+  <div id="dashboard" class="hidden">
+    <h2>Welcome, <span id="user-email"></span></h2>
+    <p>Role: <strong id="user-role"></strong></p>
+    <button onclick="logout()">Logout</button>
+    <hr>
+    <div id="singer-area" class="hidden">
+      <h3>Upload New Song</h3>
+      <!-- we'll add upload form later -->
+      <p>(Upload coming in next step)</p>
+    </div>
+    <div id="listener-area" class="hidden">
+      <h3>Available Songs</h3>
+      <p>(Song list coming soon)</p>
+    </div>
+  </div>
+
+</div>
+
+<!-- Firebase SDKs (use latest compatible versions) -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+  import { 
+    getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, 
+    onAuthStateChanged, signOut 
+  } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyAVygTKsZgHwskxySGdabPCGjwk-36nE-o",
+    authDomain: "twinmac-ff.firebaseapp.com",
+    databaseURL: "https://twinmac-ff-default-rtdb.firebaseio.com",
+    projectId: "twinmac-ff",
+    storageBucket: "twinmac-ff.firebasestorage.app",
+    messagingSenderId: "28100460093",
+    appId: "1:28100460093:web:f167e196772e5010b1f454",
+    measurementId: "G-NWKE52MPBY"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+
+  const status = document.getElementById('status');
+  const authSection = document.getElementById('auth-section');
+  const dashboard = document.getElementById('dashboard');
+  const userEmailEl = document.getElementById('user-email');
+  const userRoleEl = document.getElementById('user-role');
+  const singerArea = document.getElementById('singer-area');
+  const listenerArea = document.getElementById('listener-area');
+
+  function showStatus(msg, isError = false) {
+    status.textContent = msg;
+    status.style.color = isError ? '#f44336' : '#4caf50';
+  }
+
+  window.signup = async () => {
+    const email = document.getElementById('email').value.trim();
+    const pass = document.getElementById('password').value;
+    const role = document.querySelector('input[name="role"]:checked')?.value;
+
+    if (!email || !pass || pass.length < 6) {
+      showStatus("Email and password ≥6 chars required", true);
+      return;
+    }
+
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
+      showStatus("Account created! You can login now.");
+      // Role should be saved in Firestore later – we skip for now
+    } catch (error) {
+      showStatus(error.message, true);
+    }
+  };
+
+  window.login = async () => {
+    const email = document.getElementById('email').value.trim();
+    const pass = document.getElementById('password').value;
+
+    try {
+      await signInWithEmailAndPassword(auth, email, pass);
+      // onAuthStateChanged will handle UI update
+    } catch (error) {
+      showStatus(error.message, true);
+    }
+  };
+
+  window.logout = () => signOut(auth);
+
+  onAuthStateChanged(auth, (user) => {
+    if (user) {
+      authSection.classList.add('hidden');
+      dashboard.classList.remove('hidden');
+      userEmailEl.textContent = user.email;
+      
+      // For now we don't have role stored → show both or placeholder
+      // In next step we'll read role from Firestore
+      userRoleEl.textContent = "loading...";
+      singerArea.classList.remove('hidden');   // temporary
+      listenerArea.classList.remove('hidden'); // temporary
+      showStatus("Logged in successfully!");
+    } else {
+      authSection.classList.remove('hidden');
+      dashboard.classList.add('hidden');
+      showStatus("");
+    }
+  });
+</script>
+
+</body>
+</html>
