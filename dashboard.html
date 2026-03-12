@@ -39,25 +39,29 @@
 <script type="module">
   import { initAuth, logout } from './js/auth.js';
 
-  const emailEl   = document.getElementById('user-email');
-  const roleEl    = document.getElementById('user-role');
-  const listenerArea = document.getElementById('listener-area');
-  const singerArea   = document.getElementById('singer-area');
+  const emailEl       = document.getElementById('user-email');
+  const roleEl        = document.getElementById('user-role');
+  const listenerSec   = document.getElementById('listener-section');
+  const singerSec     = document.getElementById('singer-section');
+  const statusEl      = document.getElementById('status');
 
-  initAuth((authState) => {
-    if (!authState.loggedIn) {
+  initAuth((state) => {
+    if (!state.isLoggedIn) {
       window.location.href = 'login.html';
       return;
     }
 
-    emailEl.textContent = authState.user.email;
-    roleEl.textContent  = authState.role;
+    emailEl.textContent = state.user.email || 'User';
+    roleEl.textContent  = state.role.toUpperCase();
 
-    if (authState.role === 'singer') {
-      singerArea.style.display = 'block';
+    if (state.role === 'singer') {
+      singerSec.style.display = 'block';
     } else {
-      listenerArea.style.display = 'block';
+      listenerSec.style.display = 'block';
     }
+
+    statusEl.textContent = '✓ Logged in successfully';
+    statusEl.className = 'success';
   });
 
   window.logout = logout;
