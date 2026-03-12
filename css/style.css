@@ -1,0 +1,147 @@
+/* css/style.css */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: #0d1117;          /* very dark */
+  color: #e6edf3;
+  min-height: 100vh;
+}
+
+.container {
+  max-width: 480px;
+  margin: 40px auto;
+  padding: 30px;
+  background: #161b22;          /* dark card */
+  border-radius: 12px;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.6);
+  border: 1px solid #30363d;
+}
+
+h1, h2 {
+  text-align: center;
+  margin-bottom: 1.4rem;
+  color: #58a6ff;               /* blue-ish for headings, or change */
+}
+
+input {
+  width: 100%;
+  padding: 14px;
+  margin: 12px 0;
+  border: 1px solid #30363d;
+  border-radius: 6px;
+  background: #0d1117;
+  color: #e6edf3;
+  font-size: 1rem;
+}
+
+input:focus {
+  outline: none;
+  border-color: #238636;        /* dark green focus */
+  box-shadow: 0 0 0 3px rgba(35,134,54,0.3);
+}
+
+.btn {
+  width: 100%;
+  padding: 14px;
+  margin: 10px 0;
+  border: none;
+  border-radius: 6px;
+  font-size: 1.05rem;
+  cursor: pointer;
+  transition: all 0.25s;
+}
+
+.btn-primary {
+  background: #238636;          /* dark green */
+  color: white;
+}
+
+.btn-primary:hover {
+  background: #2ea043;
+}
+
+.btn-secondary {
+  background: #21262d;
+  color: #c9d1d9;
+  border: 1px solid #30363d;
+}
+
+.btn-secondary:hover {
+  background: #30363d;
+}
+
+/* Lime green bottom accent / highlights */
+.lime-accent {
+  color: #7fff00;               /* lime green */
+  font-weight: bold;
+}
+
+/* Sliding animation container */
+.form-wrapper {
+  position: relative;
+  overflow: hidden;
+  height: 420px;                /* adjust based on your forms */
+  margin: 30px 0 20px;
+}
+
+.form-box {
+  position: absolute;
+  width: 100%;
+  transition: transform 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  padding: 0 10px;
+}
+
+.form-box.login {
+  transform: translateX(0);
+}
+
+.form-box.register {
+  transform: translateX(100%);
+}
+
+.form-box.active {
+  transform: translateX(0) !important;
+}
+
+.form-box:not(.active) {
+  transform: translateX(-100%) !important;
+}
+
+/* Toggle buttons area */
+.toggle-btns {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.toggle-btn {
+  padding: 10px 24px;
+  background: #21262d;
+  border: none;
+  color: #c9d1d9;
+  border-radius: 20px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s;
+}
+
+.toggle-btn.active {
+  background: #238636;          /* dark green active */
+  color: white;
+}
+
+/* Status message */
+#status {
+  text-align: center;
+  margin: 15px 0;
+  min-height: 1.4em;
+}
+
+.error   { color: #f85149; }
+.success { color: #3fb950; }
