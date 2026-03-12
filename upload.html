@@ -45,8 +45,8 @@
   import { auth, db, storage } from './js/firebase-config.js';
   import { 
     ref, uploadBytesResumable, getDownloadURL 
-  } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-storage.js";
-  import { collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+  } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-storage.js";
+  import { collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
   import { initAuth, logout } from './js/auth.js';
 
   const form        = document.getElementById('uploadForm');
@@ -113,14 +113,17 @@
           // 2. Optional: Upload cover if selected
           if (coverFile) {
             const coverRef = ref(storage, `covers/\( {auth.currentUser.uid}/ \){Date.now()}_${coverFile.name}`);
-            await uploadBytesResumable(coverRef, coverFile).then(() => getDownloadURL(coverRef));
+            const coverUpload = uploadBytesResumable(coverRef, coverFile);
+            await new Promise((resolve, reject) => {
+              coverUpload.on('state_changed', null, reject, resolve);
+            });
             coverURL = await getDownloadURL(coverRef);
           }
 
           // 3. Save song info to Firestore
           await addDoc(collection(db, "songs"), {
             title: title,
-            artist: auth.currentUser.email.split('@')[0], // or use display name later
+            artist: auth.currentUser.email.split('@')[0],
             songURL: songURL,
             coverURL: coverURL || null,
             uploadedBy: auth.currentUser.uid,
@@ -141,6 +144,3 @@
     }
   });
 </script>
-
-</body>
-</html>
