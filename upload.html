@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Music App - Upload Song</title>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    progress { width: 100%; height: 10px; margin: 10px 0; }
+    #progress-container { display: none; margin: 15px 0; }
+    #song-list-link { display: block; margin: 20px 0; text-align: center; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h1>Upload New Song</h1>
+  <p>Only for Singers / Artists</p>
+
+  <form id="uploadForm">
+    <input type="text" id="songTitle" placeholder="Song Title" required />
+    
+    <label style="display:block; margin:15px 0 5px;">Song File (mp3 recommended)</label>
+    <input type="file" id="songFile" accept="audio/*" required />
+    
+    <label style="display:block; margin:15px 0 5px;">Cover Image (optional jpg/png)</label>
+    <input type="file" id="coverImage" accept="image/*" />
+    
+    <button type="submit" class="btn btn-primary" style="margin-top:25px;">
+      Upload Song
+    </button>
+  </form>
+
+  <div id="progress-container">
+    <progress id="progressBar" value="0" max="100"></progress>
+    <p id="progressText">0%</p>
+  </div>
+
+  <p id="status"></p>
+
+  <a href="dashboard.html" class="btn btn-secondary">Back to Dashboard</a>
+</div>
+
+<script type="module">
+  import { auth, db, storage } from './js/firebase-config.js';
+  import { 
+    ref, uploadBytesResumable, getDownloadURL 
+  } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-storage.js";
+  import { collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+  import { initAuth, logout } from './js/auth.js';
+
+  const form        = document.getElementById('uploadForm');
+  const titleInput  = document.getElementById('songTitle');
+  const fileInput   = document.getElementById('songFile');
+  const coverInput  = document.getElementById('coverImage');
+  const progressCon = document.getElementById('progress-container');
+  const progressBar = document.getElementById('progressBar');
+  const progressTxt = document.getElementById('progressText');
+  const status      = document.getElementById('status');
+
+  function showStatus(msg, isError = false) {
+    status.textContent = msg;
+    status.className = isError ? 'error' : 'success';
+  }
+
+  // Protect page - only singer can access
+  initAuth((state) => {
+    if (!state.isLoggedIn) {
+      window.location.href = 'login.html';
+      return;
+    }
+
+    if (state.role !== 'singer') {
+      showStatus("Only singers can upload songs. Redirecting...", true);
+      setTimeout(() => { window.location.href = 'dashboard.html'; }, 2500);
+    }
+  });
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const title = titleInput.value.trim();
+    const songFile = fileInput.files[0];
+    const coverFile = coverInput.files[0];
+
+    if (!title || !songFile) {
+      showStatus("Title and song file are required", true);
+      return;
+    }
+
+    try {
+      showStatus("Starting upload...");
+      progressCon.style.display = 'block';
+
+      // 1. Upload song file
+      const songRef = ref(storage, `songs/\( {auth.currentUser.uid}/ \){Date.now()}_${songFile.name}`);
+      const songUpload = uploadBytesResumable(songRef, songFile);
+
+      songUpload.on('state_changed',
+        (snapshot) => {
+          const prog = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+          progressBar.value = prog;
+          progressTxt.textContent = Math.round(prog) + '%';
+        },
+        (error) => {
+          showStatus("Upload failed: " + error.message, true);
+          progressCon.style.display = 'none';
+        },
+        async () => {
+          const songURL = await getDownloadURL(songRef);
+
+          let coverURL = null;
+          // 2. Optional: Upload cover if selected
+          if (coverFile) {
+            const coverRef = ref(storage, `covers/\( {auth.currentUser.uid}/ \){Date.now()}_${coverFile.name}`);
+            await uploadBytesResumable(coverRef, coverFile).then(() => getDownloadURL(coverRef));
+            coverURL = await getDownloadURL(coverRef);
+          }
+
+          // 3. Save song info to Firestore
+          await addDoc(collection(db, "songs"), {
+            title: title,
+            artist: auth.currentUser.email.split('@')[0], // or use display name later
+            songURL: songURL,
+            coverURL: coverURL || null,
+            uploadedBy: auth.currentUser.uid,
+            createdAt: serverTimestamp(),
+            plays: 0,
+            likes: 0
+          });
+
+          showStatus("Song uploaded successfully! 🎵", false);
+          progressCon.style.display = 'none';
+          form.reset();
+        }
+      );
+
+    } catch (err) {
+      showStatus("Error: " + err.message, true);
+      progressCon.style.display = 'none';
+    }
+  });
+</script>
+
+</body>
+</html>
