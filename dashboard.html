@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Music App - Dashboard</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div class="container">
+  <h1>Music Player Dashboard</h1>
+  <p>Welcome, <span id="user-email">...</span></p>
+  <p>Your role: <strong id="user-role">loading...</strong></p>
+
+  <div id="listener-area" style="display:none; margin-top:30px;">
+    <h2>Listener Dashboard</h2>
+    <p>You can browse and play songs.</p>
+    <a href="player.html" class="btn btn-primary" style="display:block; text-align:center; text-decoration:none;">
+      Go to Song List & Player
+    </a>
+  </div>
+
+  <div id="singer-area" style="display:none; margin-top:30px;">
+    <h2>Singer Dashboard</h2>
+    <p>You can upload your songs.</p>
+    <a href="upload.html" class="btn btn-primary" style="display:block; text-align:center; text-decoration:none;">
+      Upload New Song
+    </a>
+  </div>
+
+  <button onclick="logout()" class="btn btn-secondary" style="margin-top:40px;">
+    Logout
+  </button>
+
+  <p id="status"></p>
+</div>
+
+<script type="module">
+  import { initAuth, logout } from './js/auth.js';
+
+  const emailEl   = document.getElementById('user-email');
+  const roleEl    = document.getElementById('user-role');
+  const listenerArea = document.getElementById('listener-area');
+  const singerArea   = document.getElementById('singer-area');
+
+  initAuth((authState) => {
+    if (!authState.loggedIn) {
+      window.location.href = 'login.html';
+      return;
+    }
+
+    emailEl.textContent = authState.user.email;
+    roleEl.textContent  = authState.role;
+
+    if (authState.role === 'singer') {
+      singerArea.style.display = 'block';
+    } else {
+      listenerArea.style.display = 'block';
+    }
+  });
+
+  window.logout = logout;
+</script>
+
+</body>
+</html>
