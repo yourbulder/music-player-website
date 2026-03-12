@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>TwinMac Music - Player</title>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    .song-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(160px,1fr)); gap:15px; margin-top:20px; }
+    .song-card { background:#1a2332; border-radius:12px; overflow:hidden; cursor:pointer; transition:0.3s; }
+    .song-card:hover { transform:scale(1.05); }
+    .song-card img { width:100%; height:160px; object-fit:cover; }
+    .song-info { padding:12px; }
+    .now-playing { position:fixed; bottom:0; left:0; right:0; background:#161b22; border-top:3px solid #7fff00; padding:12px; z-index:100; }
+    .progress { width:100%; height:6px; background:#333; margin:8px 0; border-radius:3px; cursor:pointer; }
+    .controls { display:flex; justify-content:space-between; align-items:center; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h1 style="text-align:center;">🎵 All Songs</h1>
+  <input type="text" id="search" placeholder="Search by title or artist..." style="width:100%; padding:12px; margin:15px 0; background:#0d1117; border:1px solid #30363d; color:white; border-radius:6px;">
+
+  <div class="song-grid" id="songList">
+    <!-- Songs load here automatically -->
+  </div>
+</div>
+
+<!-- Fixed Bottom Player -->
+<div class="now-playing" id="playerBar" style="display:none;">
+  <div style="display:flex; align-items:center; gap:12px;">
+    <img id="nowCover" src="" style="width:50px; height:50px; object-fit:cover; border-radius:6px;">
+    <div style="flex:1; min-width:0;">
+      <div id="nowTitle" style="font-weight:bold; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"></div>
+      <div id="nowArtist" style="font-size:0.9rem; color:#8b949e;"></div>
+    </div>
+    <div class="controls">
+      <button onclick="prevSong()" style="background:none; border:none; font-size:1.8rem; color:#7fff00;">⏮</button>
+      <button id="playBtn" onclick="togglePlay()" style="background:#7fff00; color:#000; width:50px; height:50px; border-radius:50%; font-size:1.6rem;">▶</button>
+      <button onclick="nextSong()" style="background:none; border:none; font-size:1.8rem; color:#7fff00;">⏭</button>
+    </div>
+  </div>
+  <div class="progress" id="progressBar" onclick="seek(event)"></div>
+  <audio id="audioPlayer" style="display:none;"></audio>
+</div>
+
+<script type="module">
+  import { db } from './js/firebase-config.js';
+  import { collection, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
+
+  let songs = [];
+  let currentIndex = -1;
+  const audio = document.getElementById('audioPlayer');
+  const playerBar = document.getElementById('playerBar');
+
+  // Real-time songs from Firestore
+  const q = query(collection(db, "songs"), orderBy("createdAt", "desc"));
+  onSnapshot(q, (snapshot) => {
+    songs = [];
+    snapshot.forEach(doc => {
+      songs.push({ id: doc.id, ...doc.data() });
+    });
+    renderSongs();
+  });
+
+  function renderSongs(filteredSongs = songs) {
+    const container = document.getElementById('songList');
+    container.innerHTML = "";
+
+    if (filteredSongs.length === 0) {
+      container.innerHTML = "<p style='text-align:center; grid-column:1/-1;'>No songs yet. Be the first singer! 🎤</p>";
+      return;
+    }
+
+    filteredSongs.forEach((song, index) => {
+      const card = document.createElement('div');
+      card.className = 'song-card';
+      card.innerHTML = `
+        <img src="${song.coverURL || 'https://via.placeholder.com/160x160/1a2332/7fff00?text=♪'}" alt="cover">
+        <div class="song-info">
+          <div style="font-weight:bold;">${song.title}</div>
+          <div style="font-size:0.9rem; color:#8b949e;">${song.artist || 'Unknown'}</div>
+        </div>
+      `;
+      card.onclick = () => playSong(index);
+      container.appendChild(card);
+    });
+  }
+
+  // Search
+  document.getElementById('search').addEventListener('input', (e) => {
+    const term = e.target.value.toLowerCase();
+    const filtered = songs.filter(s => 
+      (s.title && s.title.toLowerCase().includes(term)) ||
+      (s.artist && s.artist.toLowerCase().includes(term))
+    );
+    renderSongs(filtered);
+  });
+
+  // Play song
+  window.playSong = (index) => {
+    currentIndex = index;
+    const song = songs[index];
+    audio.src = song.songURL;
+    document.getElementById('nowTitle').textContent = song.title;
+    document.getElementById('nowArtist').textContent = song.artist || '';
+    document.getElementById('nowCover').src = song.coverURL || 'https://via.placeholder.com/50x50/1a2332/7fff00?text=♪';
+    playerBar.style.display = 'block';
+    audio.play();
+    document.getElementById('playBtn').innerHTML = '❚❚';
+  };
+
+  window.togglePlay = () => {
+    if (audio.paused) {
+      audio.play();
+      document.getElementById('playBtn').innerHTML = '❚❚';
+    } else {
+      audio.pause();
+      document.getElementById('playBtn').innerHTML = '▶';
+    }
+  };
+
+  window.nextSong = () => { 
+    currentIndex = (currentIndex + 1) % songs.length;
+    playSong(currentIndex);
+  };
+
+  window.prevSong = () => { 
+    currentIndex = (currentIndex - 1 + songs.length) % songs.length;
+    playSong(currentIndex);
+  };
+
+  // Progress bar
+  audio.ontimeupdate = () => {
+    const progress = document.getElementById('progressBar');
+    const percent = (audio.currentTime / audio.duration) * 100 || 0;
+    progress.style.background = `linear-gradient(to right, #7fff00 ${percent}%, #333 ${percent}%)`;
+  };
+
+  window.seek = (e) => {
+    const rect = e.target.getBoundingClientRect();
+    const pos = (e.clientX - rect.left) / rect.width;
+    audio.currentTime = pos * audio.duration;
+  };
+
+  // Auto next
+  audio.onended = () => nextSong();
+</script>
+
+</body>
+</html>
